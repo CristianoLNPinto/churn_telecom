@@ -1,0 +1,190 @@
+# Proposta de aplicação de análise de sobrevivência para o problema de churn na indústria de telecomunicações
+
+## Estratégia de análise
+* Preparação dos dados
+  * Carregamento dos dados
+  * Pré-processamento
+    * Dados ausentes
+    * Conversão de Tipo de Dados
+    * Qualidade dos Dados
+* Exploração dos dados e Visualização
+  * Exploratory Data Analysis (EDA)
+  * Anáise da taxa de churn e distribuição de tenure
+  * Visualização das principais variáveis
+* Análise de sobrevivência
+  * Definição da variável de evento e tempo
+    * Evento: Converter churn em um indicador binário
+    * Tempo: Utilização da variável tenure como o tempo decorrido até o churn acontecer
+* Modelo de Sobrevivência Multivariado - Cox Proportional Hazards Model
+  * Preparação dos dados
+  * Divisão dos dados em treino e teste
+  * Treinamento do modelo
+  * Validação do modelo
+  * Explicabilidade do modelo
+
+## Preparação dos dados
+### Carregamento dos dados
+
+Nosso cliente disponibilizou uma base de dados contendo 7.043 registros de clientes e 21 variáveis. 
+
+O objetivo deste projeto é descobrir o comportamento de churn dos clientes, ou seja, quais clientes estão mais propensos a cancelar o serviço. 
+
+Abaixo, segue uma descrição das variáveis disponíveis:
+
+* customerID: Identificador único do cliente
+* gender: Gênero do cliente, podendo ser Male e Female
+* SeniorCitizen: Se o cliente é idoso ou não, podendo ser 0 ou 1
+* Partner: Se o cliente tem parceiro ou não, podendo ser Yes ou No
+* Dependents: Se o cliente tem dependentes ou não, podendo ser Yes ou No
+* tenure: Quantidade de meses que o cliente permaneceu na empresa
+* PhoneService: Se o cliente tem serviço de telefone ou não, podendo ser Yes ou No
+* MultipleLines: Se o cliente tem múltiplas linhas de telefone ou não, podendo ser Yes, No ou No phone service
+* InternetService: Se o cliente tem serviço de internet ou não, podendo ser DSL, Fiber optic ou No
+* OnlineSecurity: Se o cliente tem serviço de segurança online ou não, podendo ser Yes, No ou No internet service
+* OnlineBackup: Se o cliente tem serviço de backup online ou não, podendo ser Yes, No ou No internet service
+* DeviceProtection: Se o cliente tem serviço de proteção de dispositivo ou não, podendo ser Yes, No ou No internet service
+* TechSupport: Se o cliente tem serviço de suporte técnico ou não, podendo ser Yes, No ou No internet service
+* StreamingTV: Se o cliente tem serviço de streaming de TV ou não, podendo ser Yes, No ou No internet service
+* StreamingMovies: Se o cliente tem serviço de streaming de filmes ou não, podendo ser Yes, No ou No internet service
+* Contract: Tipo de contrato do cliente, podendo ser Month-to-month, One year ou Two year
+* PaperlessBilling: Se o cliente tem fatura sem papel ou não, podendo ser Yes ou No
+* PaymentMethod: Método de pagamento do cliente, podendo ser Bank transfer (automatic), Credit card (automatic), Electronic check ou Mailed check
+* MonthlyCharges: Valor da mensalidade do cliente
+* TotalCharges: Valor total pago pelo cliente
+* Churn: Se o cliente cancelou o serviço ou não, podendo ser Yes ou No
+
+
+### Pré-processamento
+
+### Conversão de Tipo de Dados
+
+Nesta etapa, iremos converter os tipos de dados das variáveis de acordo com os valores encontrados em cada uma delas. 
+
+Temos três campos numéricos, sendo eles: tenure, MonthlyCharges e TotalCharges.
+
+O campo customerID é um identificador único do cliente, portanto, não será utilizado na análise.
+
+Os demais campos são todos categóricos. 
+
+### Dados ausentes
+
+Nesta etapa, iremos verificar se existem dados ausentes na base de dados.
+
+Foram encontrados dados ausentes apenas na coluna TotalCharges. 
+
+Temos duas opções para tratar o problema de dados ausentes neste caso. 
+
+A primeira opção seria remover os registros que possuem dados ausentes no campo TotalCharges. Como temos menos de 0,0016% de registros com dados ausentes, a remoção destes registros não afetaria a análise.
+
+Uma segunda opção seria preencher os dados ausentes com uma estimativa de valor para o campo TotalCharges. Neste caso, seria necessário entender melhor a distribuição dos valores de TotalCharges para decidir qual seria a melhor estratégia de preenchimento. Uma hipótese que podemos levantar é que os valores de TotalCharges são próximos do valor de quantidade de meses de permanência na empresa multiplicado pelo valor MonthlyCharges. 
+
+Para essa análise, vamos filtrar apenas os registros que não possuem dados ausentes no campo TotalCharges.
+
+Vamos então calcular o valor de TotalCharges por meio da fórmula abaixo:
+
+totalCharges_cal = tenure * MonthlyCharges
+
+E em seguida verificar o quão próximo o valor calculado está do valor real de TotalCharges.
+
+Realizando uma análise descritiva dos dados, podemos observar que a diferença entre o valor TotalCharges calculado e o valor real de TotalCharges é menor que 4,3% para 75% dos registros. Sendo a diferença em média 3,22%. 
+
+Desta forma, podemos utilizar esta estratégia para preencher os dados ausentes no campo TotalCharges.
+
+Ainda sobre essa análise, foi possível identificar que existem alguns outliers com valores de totalCharges_calc_error_perc maiores que 10%. Este comportamento pode indicar a presenção de outras variáveis externas que poderiam influenciar no valor de TotalCharges, como por exemplo: juros, multas, descontos, etc. Tais variáveis não estão disponíveis na base de dados, portanto, não será possível realizar uma análise mais aprofundada sobre este comportamento.
+
+### Remoção do identificador de cliente
+
+O identificador de cliente não será utilizado na análise, portanto, será removido da base de dados.
+
+### Qualidade dos Dados
+
+Para os dados numéricos, iremos verificar a distribuição dos dados com o objetivo de identificar possíveis outliers.
+
+Ao analisar a distribuição dos campos numéricos, não foi possível identificar nenhum outlier que possa impactar na análise.
+
+## Exploração dos dados e Visualização
+
+### Exploratory Data Analysis (EDA)
+
+Nesta etapa, iremos realizar uma análise exploratória dos dados com o objetivo de entender melhor o comportamento dos dados e identificar possíveis insights.
+
+### Taxa de Churn
+
+A taxa de churn é a proporção de clientes que cancelaram o serviço em relação ao total de clientes.
+
+Identificamos uma taxa de Churn de 26,5% na base de dados. Como não temos informações sobre o período de tempo em que os dados foram coletados, não é possível estimar uma taxa de Churn mensal ou anual. Podemos considerar que a taxa de Churn encontrada é a taxa de Churn total.
+
+### Distribuição das variáveis categóricas com relação ao Churn
+
+Nesta etapa, iremos analisar a distribuição das variáveis categóricas com relação ao Churn. Com isso, poderemos identificar possíveis padrões de comportamento dos clientes que cancelaram o serviço.
+
+### Análise de sobrevivência - Survival Analysis
+
+A Análise de Sobrevivência é uma técnica estatística utilizada para estudar o tempo até a ocorrência de um evento, geralmente relacionado à sobrevivência ou à falha de algum evento em um determinado período de tempo. Também é conhecida como análise de tempo até o evento, análise de tempo de falha ou análise de tempo de vida.
+
+Essa técnica é frequentemente aplicada em estudos de saúde, medicina, ciências sociais e engenharia para analisar o tempo até a morte, o tempo até a recuperação, o tempo até a falha de um sistema ou qualquer outro evento de interesse. A Análise de Sobrevivência leva em consideração o tempo de ocorrência do evento, a presença de censuras (dados incompletos) e a relação entre variáveis explicativas e a probabilidade de ocorrência do evento.
+
+Um aspecto fundamental da análise de sobrevivência é o uso da função de sobrevivência, que descreve a probabilidade de um indivíduo ou unidade ainda estar "sobrevivendo" até um determinado tempo. Além disso, o método também envolve o uso de curvas de sobrevivência, que mostram a proporção de indivíduos que ainda não experimentaram o evento em função do tempo.
+
+Existem várias técnicas estatísticas utilizadas na análise de sobrevivência, como o modelo de riscos proporcionais de Cox, que permite examinar o efeito de múltiplas variáveis explicativas no tempo de ocorrência do evento. Outros métodos, como o método de Kaplan-Meier e os modelos paramétricos, também são amplamente utilizados.
+
+Em resumo, a análise de sobrevivência é uma técnica estatística poderosa para estudar o tempo até a ocorrência de eventos e permite a avaliação de fatores que influenciam a probabilidade de um evento ocorrer ao longo do tempo.
+
+Vamos utilizar a análise de sobrevivência para estudar o tempo até a ocorrência do evento de churn. Para isso, vamos utilizar o método de Kaplan-Meier, que é um método não paramétrico para estimar a função de sobrevivência. Precisamos para tal identificar as variáveis de tempo e evento no cenário de churn. Utilizaremos a variável tenure como variável de tempo e a variável churn como variável de evento.
+
+Analisando a curva de sobrevivência, podemos observar que a probabilidade de um cliente permanecer na empresa é de 80% após 12 meses de contrato. A probabilidade de sobrevivência reduz quase linearmente após 12 meses de contrato, chegando a 60% após 70 meses de contrato. 
+
+Entretanto, é importante salientar que existe uma queda de aproximadamente 5% na probabilidade de sobrevivência entre o 1º e o 2º mês de contrato. Este comportamento indica a necessidade de uma análise mais detalhada do que pode estar causando esta queda drástica logo no início do contrato.
+
+Para poder entender melhor este comportamento, iremos considerar outras variáveis e comparar suas curvas de sobrevivência.
+
+Mesmo que o método de análise visual não seja o mais recomendado para comparar as curvas de sobrevivência, podemos observar alguns comportamentos relevantes para a análise de churn. 
+
+Por exemplo, podemos observar que a curva de sobrevivência dos clientes que possuem contrato mensal é bem diferente da curva de sobrevivência dos clientes que possuem contrato anual ou bianual. A probabilidade de sobrevivência dos clientes que possuem contrato mensal é de 60% após 12 meses de contrato, enquanto que a probabilidade de sobrevivência dos clientes que possuem contrato anual ou bianual é de 90% após 12 meses de contrato.
+
+Outra comparação que pode ser feita é com relação ao meio de pagamento. A curva de sobrevivência dos clientes que optam pelo meio de pagamento "cheque enviado pelo correio" apresenta o mesmo comportamento de churn entre o 1º e o 2º mês de contrato. Como este meio de pagamento é o menos seguro dentre os demais, é possível que a empresa esteja tendo algum problema referente ao envio e recebimento dos cheques, ou até mesmo exista um ponto de fraude nestes contratos. Uma hipótese é de que, ao receber uma cobrança pela qual o cliente não reconhece a contratação do serviço, o cliente solicita o cancelamento imediato e abre um procedimento de fraude junta à empresa. Para validar esta hipótese é necessário um estudo mais detalhado do perfil destes clientes.
+
+### Modelo de Sobrevivência Multivariado - Cox Proportional Hazards Model
+
+Os modelos multivariados de sobrevivência se referem a modelos estatísticos usados para analisar e prever os resultados de sobrevivência ou tempo até um evento ocorrer de múltiplos indivíduos ou entidades, levando em consideração a relação entre várias variáveis ou covariáveis. O foco desta técnica está na análise dos padrões de sobrevivência de múltiplos indivíduos ou entidades simultaneamente, considerando as possíveis interações e dependências entre várias covariáveis ou preditores. Esses modelos são frequentemente usados em pesquisa biomédica, epidemiologia, ciências atuariais e outras áreas em que analisar dados de tempo até o evento com múltiplos preditores é de interesse.
+
+Os modelos multivariados de sobrevivência podem incorporar tanto covariáveis categóricas quanto contínuas, permitindo que os pesquisadores examinem os efeitos de vários fatores nos resultados de sobrevivência. Eles levam em conta a censura, que é uma característica comum dos dados de sobrevivência, em que o evento de interesse ainda não ocorreu para alguns indivíduos no final do estudo ou período de coleta de dados.
+
+Existem vários tipos de modelos multivariados de sobrevivência, incluindo o modelo de riscos proporcionais de Cox, modelos de sobrevivência paramétricos (como o modelo Weibull ou exponencial) e modelos de fragilidade. Esses modelos fornecem estimativas de razões de risco, que quantificam o efeito de cada covariável no risco de ocorrência do evento. Eles também permitem a estimativa de curvas de sobrevivência e a previsão de probabilidades futuras de eventos para indivíduos ou grupos com base em seus valores de covariáveis.
+
+Em resumo, os modelos multivariados de sobrevivência fornecem uma ferramenta poderosa para analisar e compreender a relação entre várias variáveis e resultados de sobrevivência. Eles ajudam os pesquisadores a obter insights sobre os fatores que influenciam o tempo até a ocorrência de um evento e podem ser usados para previsão, avaliação de riscos e tomada de decisões em várias áreas.
+
+Mais importante que identificar um comportamento de churn é prever quando este evento irá ocorrer. Deste modo, a empresa pode tomar ações preventivas para evitar que o cliente cancele o contrato. Para isso, iremos utilizar o modelo de riscos proporcionais de Cox, que permite examinar o efeito de múltiplas variáveis explicativas no tempo de ocorrência do evento.
+
+### Preparação dos dados
+
+Para utilizar o modelo de riscos proporcionais de Cox, precisamos preparar os dados de forma que cada linha represente um cliente e cada coluna represente uma variável. Além disso, precisamos transformar as variáveis categóricas em variáveis dummy, ou seja, variáveis binárias que indicam a presença ou ausência de uma categoria.
+
+Para o treinamento do modelo de sobrevivência multivariado, precisamos garantir que não exista colinearidade entre as variáveis explicativas. Ao analisar a matriz de correlação podemos identificar que as variáveis dummy referentes ao valor "no service" apresenta colinearidade com as variáveis dummy referentes ao serviço de internet ou telefone. Para evitar este problema, iremos remover as variáveis dummy referentes ao valor "no service".
+
+
+### Divisão dos dados em treino e teste
+
+### Treinamento do modelo
+
+Para testar o modelo, selecionamos 5 elementos do conjunto de testes e realizamos apredição dos mesmos. É possivel observar que o "Sample 2" possui um comportamento de sobrevivência linear, quanto maior o tenure, menor a probabilidade de sobrevivência. Este comportamento pode indicar que o cliente precisará de alguma intervenção para evitar o churn ao longo do tempo.
+
+### Avaliação do modelo
+
+Nossos dados de teste geralmente estão sujeitos à censura também, portanto, métricas como erro médio quadrático ou correlação são inadequadas. Em vez disso, utilizamos uma generalização da área sob a curva da característica de operação do receptor (ROC) chamada índice de concordância de Harrell ou c-index.
+
+A interpretação é idêntica à métrica tradicional da área sob a curva ROC para classificação binária:
+
+* um valor de 0,5 indica um modelo aleatório,
+* um valor de 1,0 indica um modelo perfeito,
+* um valor de 0,0 indica um modelo perfeitamente incorreto.
+
+
+### Explicabilidade do modelo
+
+Nosso modelo de análise de sobrevivência foi treinado levando em consideração todas as variáveis disponíveis no conjunto de dados. No entanto, é possível que algumas variáveis não sejam relevantes para a previsão do tempo de ocorrência do evento. Pare identificar quais variáveis individualmente são as melhores preditoras de risco de churn, podemos treinar o modelo de riscos proporcionais de Cox para cada variável e comparar o c-index de cada modelo. Quanto maior o c-index, maior a capacidade da variável em prever o tempo de ocorrência do evento.
+
+
+Com esta análise, podemos identificar que as variáveis "Contract", "PaymentMethod", "OnlineSecurity", "TechSupport", "InternetService" e "OnlineBackup" são as melhores preditoras de risco de churn. Deste modo, poderíamos utilizar estas variáveis para criar um modelo mais simples e explicável, que pode ser utilizado para prever o tempo de ocorrência do evento.
+
+Por outro lado, as variáveis MultipleLines_No phone service, PhoneService e PaymentMethod_Mailed check não são boas preditoras de risco de churn. Deste modo, podemos remover estas variáveis do modelo para simplificar o mesmo. O fato de a variável PaymentMethod_Mailed check não ser uma boa preditora de risco de churn pode ter relação com o fato de ter um comportamento de churn acentuado nos dois primeiros meses de contrato, como observado no gráfico de sobrevivência com a variável PaymentMethod_Mailed check.
